@@ -14,8 +14,9 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Search, ChevronRight } from 'lucide-react';
+import { Search, ChevronRight, ChevronLeft } from 'lucide-react';
 import { useDebounce } from '@/hooks/useDebounce';
 
 type UsersClientProps = {
@@ -33,6 +34,7 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
   
   const sort = searchParams.get('sort') || 'name_asc';
   const filter = searchParams.get('filter') || 'all';
+  const currentPage = parseInt(searchParams.get('page') || '1', 10);
 
   // Sync debounced search to URL
   useEffect(() => {
@@ -45,6 +47,7 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
       } else {
         params.delete('q');
       }
+      params.set('page', '1');
       router.replace(`${pathname}?${params.toString()}`);
     }
   }, [debouncedSearch, pathname, router, searchParams]);
@@ -84,6 +87,21 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
     return result;
   }, [initialUsers, debouncedSearch, filter, sort]);
 
+  const ITEMS_PER_PAGE = 5;
+  const totalPages = Math.max(1, Math.ceil(filteredAndSortedUsers.length / ITEMS_PER_PAGE));
+  const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (validCurrentPage - 1) * ITEMS_PER_PAGE;
+    return filteredAndSortedUsers.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredAndSortedUsers, validCurrentPage]);
+
+  const handlePageChange = (newPage: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('page', newPage.toString());
+    router.replace(`${pathname}?${params.toString()}`);
+  };
+
   return (
     <div className="container mx-auto py-8 px-4 space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -109,6 +127,7 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
             onChange={(e) => {
               const params = new URLSearchParams(searchParams.toString());
               params.set('filter', e.target.value);
+              params.set('page', '1');
               router.replace(`${pathname}?${params.toString()}`);
             }}
           >
@@ -125,6 +144,7 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
             onChange={(e) => {
               const params = new URLSearchParams(searchParams.toString());
               params.set('sort', e.target.value);
+              params.set('page', '1');
               router.replace(`${pathname}?${params.toString()}`);
             }}
           >
@@ -164,7 +184,7 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredAndSortedUsers.map((user) => (
+                {paginatedUsers.map((user) => (
                   <TableRow 
                     key={user.id} 
                     className="group cursor-pointer hover:bg-muted/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -205,7 +225,7 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
 
           {/* Mobile View: Cards */}
           <div className="grid grid-cols-1 gap-4 md:hidden">
-            {filteredAndSortedUsers.map((user) => (
+            {paginatedUsers.map((user) => (
               <Card 
                 key={user.id} 
                 className="cursor-pointer hover:border-primary/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -242,6 +262,48 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
               </Card>
             ))}
           </div>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between border-t pt-4 mt-6 gap-4">
+              <div className="text-sm text-muted-foreground">
+                Showing <span className="font-medium">{(validCurrentPage - 1) * ITEMS_PER_PAGE + 1}</span> to <span className="font-medium">{Math.min(validCurrentPage * ITEMS_PER_PAGE, filteredAndSortedUsers.length)}</span> of <span className="font-medium">{filteredAndSortedUsers.length}</span> results
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handlePageChange(validCurrentPage - 1)}
+                  disabled={validCurrentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Prev
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }).map((_, i) => (
+                    <Button
+                      key={i}
+                      variant={validCurrentPage === i + 1 ? "default" : "outline"}
+                      size="sm"
+                      className="w-8"
+                      onClick={() => handlePageChange(i + 1)}
+                    >
+                      {i + 1}
+                    </Button>
+                  ))}
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => handlePageChange(validCurrentPage + 1)}
+                  disabled={validCurrentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
