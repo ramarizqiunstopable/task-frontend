@@ -35,6 +35,7 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
   const sort = searchParams.get('sort') || 'name_asc';
   const filter = searchParams.get('filter') || 'all';
   const currentPage = parseInt(searchParams.get('page') || '1', 10);
+  const limit = parseInt(searchParams.get('limit') || '5', 10);
 
   // Sync debounced search to URL
   useEffect(() => {
@@ -87,7 +88,7 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
     return result;
   }, [initialUsers, debouncedSearch, filter, sort]);
 
-  const ITEMS_PER_PAGE = 5;
+  const ITEMS_PER_PAGE = limit;
   const totalPages = Math.max(1, Math.ceil(filteredAndSortedUsers.length / ITEMS_PER_PAGE));
   const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
   
@@ -264,11 +265,31 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
           </div>
 
           {/* Pagination Controls */}
-          {totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between border-t pt-4 mt-6 gap-4">
-              <div className="text-sm text-muted-foreground">
+          <div className="flex flex-col md:flex-row items-center justify-between border-t pt-4 mt-6 gap-4">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap justify-center">
+              <div>
                 Showing <span className="font-medium">{(validCurrentPage - 1) * ITEMS_PER_PAGE + 1}</span> to <span className="font-medium">{Math.min(validCurrentPage * ITEMS_PER_PAGE, filteredAndSortedUsers.length)}</span> of <span className="font-medium">{filteredAndSortedUsers.length}</span> results
               </div>
+              <div className="flex items-center gap-2 border-l pl-4 border-border">
+                <span>Rows per page:</span>
+                <select
+                  className="h-8 rounded-md border border-input bg-background px-2 py-1 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring"
+                  value={limit}
+                  onChange={(e) => {
+                    const params = new URLSearchParams(searchParams.toString());
+                    params.set('limit', e.target.value);
+                    params.set('page', '1');
+                    router.replace(`${pathname}?${params.toString()}`);
+                  }}
+                >
+                  <option value="3">3</option>
+                  <option value="5">5</option>
+                  <option value="10">10</option>
+                </select>
+              </div>
+            </div>
+            
+            {totalPages > 1 && (
               <div className="flex items-center space-x-2">
                 <Button 
                   variant="outline" 
@@ -302,8 +323,8 @@ export default function UsersClient({ initialUsers }: UsersClientProps) {
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </>
       )}
     </div>
