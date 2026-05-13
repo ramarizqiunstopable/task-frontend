@@ -43,11 +43,11 @@ export default async function UserDetailPage({ params, searchParams }: Props) {
   const queryString = queryStr.toString();
   const backHref = queryString ? `/users?${queryString}` : '/users';
 
-  // Parallel fetch
+  // Parallel fetch without silencing errors so Error Boundary can catch them
   const [user, posts, todos] = await Promise.all([
-    getUser(id).catch(() => null),
-    getUserPosts(id).catch(() => []),
-    getUserTodos(id).catch(() => []),
+    getUser(id),
+    getUserPosts(id),
+    getUserTodos(id),
   ]);
 
   if (!user) {

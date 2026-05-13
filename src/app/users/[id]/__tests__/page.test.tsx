@@ -62,7 +62,7 @@ describe('UserDetailPage', () => {
   });
 
   it('calls notFound when user does not exist', async () => {
-    (api.getUser as jest.Mock).mockRejectedValue(new Error('Not found'));
+    (api.getUser as jest.Mock).mockResolvedValue(null);
     (api.getUserPosts as jest.Mock).mockResolvedValue([]);
     (api.getUserTodos as jest.Mock).mockResolvedValue([]);
     
